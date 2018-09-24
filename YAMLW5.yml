@@ -1,0 +1,31 @@
+#Data model Segments
+-segment: &md Master Data
+-segment: &tran Transactions
+
+#Tables and Columns
+
+- table: airlines
+  segment: *md
+  columns:
+     airline_id: {key: yes}
+     airline:
+     
+- table: status
+  segment: *md
+  columns:
+     airline_id: {key: yes}
+     
+- table: cities
+  segment: *md
+  columns:
+     city_id: {key: yes}
+     city:
+
+- table: flights
+  segment: *tran
+  columns:
+      flight_id: {key: yes}
+      status_id: {ref: status}
+      airline_id: {ref: airlines}
+      city_id:  {ref: cities}
+      num:
