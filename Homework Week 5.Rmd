@@ -1,0 +1,112 @@
+---
+title: "DATA 607 HW week 5"
+author: "Sergio Ortega Cruz"
+date: "September 23, 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Assignment - Tidying and Transforming Data
+
+The chart above describes arrival delays for two airlines across five destinations. Your task is to:
+
+(1) Create a .CSV file (or optionally, a MySQL database!) that includes all of the information above. 
+
+You're encouraged to use a "wide" structure similar to how the information appears above, so that you can practice tidying and transformations as described below.
+
+(2) Read the information from your .CSV file into R, and use tidyr and dplyr as needed to tidy and transform your data.
+
+(3) Perform analysis to compare the arrival delays for the two airlines.
+
+(4) Your code should be in an R Markdown file, posted to rpubs.com, and should include narrative descriptions of your data cleanup work, analysis, and conclusions. Please include in your homework submission:
+
+The URL to the .Rmd file in your GitHub repository. and
+The URL for your rpubs.com web page.
+
+
+
+```{r db}
+
+library(tidyr)
+library(dplyr)
+library(stringr)
+
+flights <- read.csv("https://raw.githubusercontent.com/sortega7878/DATA607W5/master/flights.csv", 
+                    sep = ",", header = TRUE)
+flights
+```
+Data Cleaning and going Tidy.
+
+At this point the initial data is tidy. Each variable (airline, city, delayed, ontime) is in its own column and each observation is in its own row.
+```{r wrangling}
+
+# Tidy up data, so that every variable is in a column and every observation is in a row
+
+flights <- rename(flights, airline = ï..airline)
+flights <- flights %>% 
+  gather(city, number, 3:length(flights)) %>%   # Transfer 'city' variable into a column
+  spread(status, number)                         # Split 'delayed'/'on time' variables into 2 columns
+
+# Adjust city names (get rid of a period)
+flights$city <- str_replace_all(flights$city, "\\.", " ")
+
+# Remove space in the 'on time' variable name
+flights <- rename(flights, ontime = `on time`)
+flights
+```
+
+DATA ANALYSIS
+
+Getting the ratio of delayed flights for all airlines and cities. We'll sort the data by delay starting with the worst airline/city.
+
+```{r DA}
+
+flights <- flights %>% 
+  mutate(flights = delayed + ontime, delayed_ratio = delayed / flights) %>% 
+  arrange(desc(delayed_ratio))
+flights
+
+```
+Let us look compare how delays compare against each other using various criteria.
+
+```{r avg}
+# Average delay across all cities and airlines
+flights %>% summarise(mean(delayed_ratio))
+
+
+delay_city <- flights %>% 
+  group_by(city) %>% 
+  summarise(avg_delay = mean(delayed_ratio)) %>% 
+  arrange(desc(avg_delay))
+delay_city
+
+```
+
+```{r byAirline}
+
+delay_airline <- flights %>% 
+  group_by(airline) %>% 
+  summarise(avg_delay = mean(delayed_ratio)) %>% 
+  arrange(desc(avg_delay))
+delay_airline
+
+```
+Map delays per city and per airline.
+
+```{r graph}
+library(ggplot2)
+
+ggplot(flights, aes(x = city, y = delayed_ratio, group = airline, color = airline, shape = airline)) + 
+  geom_point(aes(shape = airline)) + 
+  geom_line() + 
+  labs(x = "City", y = "Delay") + 
+  theme(legend.title=element_blank())
+
+```
+Is important to note how the trends of delay matches the airport , knowing more data will help us determine why Alaska has bigger delay periods and then will be able to make corrective actions.
+
+
+
